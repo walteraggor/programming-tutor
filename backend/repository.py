@@ -1,104 +1,238 @@
+import textwrap
 from typing import List
 from .models import Lesson, Quiz, QuizQuestion, Challenge, ChallengeTest
 
+def _text(block: str) -> str:
+    """Remove the indentation that keeps the text below lined up with the code."""
+    return textwrap.dedent(block).strip()
+
 # ─────────────────────────────
-# Lessons (expanded)
+# Lessons
 # ─────────────────────────────
 LESSONS: List[Lesson] = [
     Lesson(
         id="py_basics_01",
         title="Python Basics: Variables & Types",
-        body_markdown=(
-            "### Variables & Types\n"
-            "Python variables are created by assignment.\n\n"
-            "```python\n"
-            "x = 42\n"
-            "name = 'Alice'\n"
-            "pi = 3.14159\n"
-            "is_admin = False\n"
-            "```\n"
-            "Built-in basic types: `int`, `float`, `str`, `bool`."
-        ),
-        sample_code="x=10; y=3; print('x+y=', x+y)\n",
+        body_markdown=_text("""
+            ### Variables & Types
+            A variable is a name for a value. You create one by assigning to it; there is nothing to declare first.
+
+            ```python
+            x = 42
+            name = 'Alice'
+            pi = 3.14159
+            is_admin = False
+            ```
+
+            The four basic types are `int` (whole numbers), `float` (decimals), `str` (text) and `bool` (`True` or `False`). `type(x)` tells you which one a value is.
+
+            A variable can be given a new value at any time, even one of a different type.
+        """),
+        sample_code=_text("""
+            x = 10
+            y = 3
+            print('x + y =', x + y)
+            print(type(x), type('hello'))
+        """) + "\n",
         tags=["basics"]
     ),
     Lesson(
         id="py_control_02",
         title="Control Flow: if/elif/else, for, while",
-        body_markdown=(
-            "### If/Elif/Else & Loops\n"
-            "Use `if`, `elif`, `else` to branch; `for` over iterables; `while` for conditions.\n"
-        ),
-        sample_code=(
-            "for i in range(3):\n"
-            "    print('i=', i)\n"
-            "n=2\n"
-            "while n>0:\n"
-            "    print(n); n-=1\n"
-        ),
+        body_markdown=_text("""
+            ### If, Elif and Else
+            `if` runs a block only when its condition is true. `elif` checks another condition, and `else` covers everything that is left.
+
+            ```python
+            if temperature > 30:
+                print('hot')
+            elif temperature > 15:
+                print('mild')
+            else:
+                print('cold')
+            ```
+
+            ### Loops
+            A `for` loop goes through the items of something one at a time. `range(3)` gives the numbers 0, 1 and 2.
+
+            A `while` loop repeats for as long as its condition stays true, so something inside it has to change the condition.
+
+            Blocks are marked by indentation: the spaces at the start of a line matter.
+        """),
+        sample_code=_text("""
+            for i in range(3):
+                print('i =', i)
+
+            n = 2
+            while n > 0:
+                print(n)
+                n -= 1
+        """) + "\n",
         tags=["control"]
     ),
     Lesson(
         id="py_types_03",
         title="Data Types: Lists, Tuples, Dicts, Sets",
-        body_markdown=(
-            "Lists are ordered and mutable; tuples are ordered and immutable.\n"
-            "Dicts map keys to values; sets hold unique items.\n"
-        ),
-        sample_code="nums=[1,2,3]; nums.append(4); print(nums)\n",
+        body_markdown=_text("""
+            ### Four Ways to Hold Several Values
+            - A list keeps items in order and can be changed: `[1, 2, 3]`
+            - A tuple keeps items in order and cannot be changed: `(1, 2, 3)`
+            - A dict maps keys to values: `{'name': 'Alice', 'age': 30}`
+            - A set holds each item once, in no particular order: `{1, 2, 3}`
+
+            ```python
+            nums = [1, 2, 3]
+            nums.append(4)          # lists can grow
+            first = nums[0]         # positions start at 0
+
+            ages = {'Alice': 30}
+            ages['Bob'] = 25        # add a key
+            ```
+
+            `len()` works on all four, and so does `in`: `2 in nums` is `True`.
+        """),
+        sample_code=_text("""
+            nums = [1, 2, 3]
+            nums.append(4)
+            print(nums, len(nums))
+
+            ages = {'Alice': 30, 'Bob': 25}
+            print(ages['Bob'], 'Alice' in ages)
+            print(set([1, 1, 2]))
+        """) + "\n",
         tags=["collections"]
     ),
     Lesson(
         id="py_funcs_04",
         title="Functions & Parameters",
-        body_markdown="Define functions with `def`. Return values with `return`. Support default args, *args, **kwargs.",
-        sample_code=(
-            "def add(a,b=0): return a+b\n"
-            "print(add(2,3), add(5))\n"
-        ),
+        body_markdown=_text("""
+            ### Functions
+            A function is a named block of code you can run again and again. Define it with `def`, and send a value back with `return`.
+
+            ```python
+            def add(a, b=0):
+                return a + b
+            ```
+
+            `a` and `b` are parameters. `b=0` gives `b` a default, so `add(5)` works and returns 5.
+
+            A function with no `return` gives back `None`.
+
+            ### Any Number of Arguments
+            `*args` collects extra positional arguments into a tuple, and `**kwargs` collects extra named arguments into a dict.
+        """),
+        sample_code=_text("""
+            def add(a, b=0):
+                return a + b
+
+            print(add(2, 3), add(5))
+
+            def total(*numbers):
+                return sum(numbers)
+
+            print(total(1, 2, 3))
+        """) + "\n",
         tags=["functions"]
     ),
     Lesson(
         id="py_files_05",
         title="Files & Context Managers",
-        body_markdown="Open files with `with open(...) as f:`; always closes automatically.",
-        sample_code=(
-            "# Reads a file named sample.txt\n"
-            "with open('sample.txt','w') as f:\n"
-            "    f.write('hello')\n"
-            "with open('sample.txt') as f:\n"
-            "    print(f.read())\n"
-        ),
+        body_markdown=_text("""
+            ### Files
+            `open()` gives you a file to read or write. Putting it in a `with` block closes the file for you when the block ends, even if something goes wrong.
+
+            ```python
+            with open('notes.txt', 'w') as f:
+                f.write('hello')
+
+            with open('notes.txt') as f:
+                print(f.read())
+            ```
+
+            The second argument is the mode: `'r'` to read (the default), `'w'` to write from scratch and `'a'` to add to the end.
+
+            File access is switched off in this app's Playground, so run this example in your own editor.
+        """),
+        sample_code=_text("""
+            # Writes a file, then reads it back.
+            with open('sample.txt', 'w') as f:
+                f.write('hello')
+
+            with open('sample.txt') as f:
+                print(f.read())
+        """) + "\n",
         tags=["io"]
     ),
     Lesson(
         id="py_errors_06",
         title="Errors & Exceptions",
-        body_markdown="Use try/except/finally. Raise exceptions with `raise`.",
-        sample_code=(
-            "try:\n"
-            "    x = int('notint')\n"
-            "except ValueError as e:\n"
-            "    print('Oops:', e)\n"
-        ),
+        body_markdown=_text("""
+            ### Catching Errors
+            When something goes wrong, Python raises an exception. Left alone, that stops the program. `try` and `except` let you deal with it instead.
+
+            ```python
+            try:
+                number = int('abc')
+            except ValueError:
+                print('That is not a number.')
+            ```
+
+            Name the kind of error you expect, such as `ValueError`, `KeyError` or `ZeroDivisionError`, so that other mistakes are not hidden.
+
+            A `finally` block runs whether or not there was an error.
+
+            ### Raising Your Own
+            Use `raise` to signal a problem yourself: `raise ValueError('age cannot be negative')`.
+        """),
+        sample_code=_text("""
+            try:
+                x = int('notint')
+            except ValueError as e:
+                print('Oops:', e)
+            finally:
+                print('Done.')
+        """) + "\n",
         tags=["exceptions"]
     ),
     Lesson(
         id="py_oop_07",
         title="OOP Basics: Classes & Methods",
-        body_markdown="Define classes with `class`. Use `__init__` to initialize.",
-        sample_code=(
-            "class Point:\n"
-            "    def __init__(self,x,y): self.x=x; self.y=y\n"
-            "    def dist(self): return (self.x**2 + self.y**2) ** 0.5\n"
-            "print(Point(3,4).dist())\n"
-        ),
+        body_markdown=_text("""
+            ### Classes
+            A class describes a kind of object: the data it holds and what it can do. `__init__` runs when a new object is made and sets up its data.
+
+            ```python
+            class Point:
+                def __init__(self, x, y):
+                    self.x = x
+                    self.y = y
+
+                def dist(self):
+                    return (self.x ** 2 + self.y ** 2) ** 0.5
+            ```
+
+            `self` is the object itself. `Point(3, 4)` makes a new point, and `p.dist()` calls a method on it.
+
+            Functions defined inside a class are called methods.
+        """),
+        sample_code=_text("""
+            class Point:
+                def __init__(self, x, y):
+                    self.x = x
+                    self.y = y
+
+                def dist(self):
+                    return (self.x ** 2 + self.y ** 2) ** 0.5
+
+            p = Point(3, 4)
+            print(p.dist())
+        """) + "\n",
         tags=["oop"]
     ),
 ]
 
 # ─────────────────────────────
-# Quizzes (expanded)
+# Quizzes
 # ─────────────────────────────
 QUIZZES: List[Quiz] = [
     Quiz(
@@ -174,7 +308,7 @@ QUIZZES: List[Quiz] = [
 ]
 
 # ─────────────────────────────
-# Challenges (expanded)
+# Challenges
 # ─────────────────────────────
 CHALLENGES: List[Challenge] = [
     Challenge(
@@ -296,5 +430,34 @@ CHALLENGES: List[Challenge] = [
             ChallengeTest(name="bad", kind="function", input_args=["([)]"], expected_return=False),
         ],
         tags=["stacks"]
+    ),
+    Challenge(
+        id="ch_double_11",
+        title="Double the Number",
+        description=(
+            "Read a whole number with input() and print the number doubled.\n\n"
+            "Call input() with no prompt text: everything your program prints is checked."
+        ),
+        starter_code="n = int(input())\nprint(n)\n",
+        tests=[
+            ChallengeTest(name="positive", kind="stdin_stdout", stdin="21\n", expected_stdout="42"),
+            ChallengeTest(name="zero", kind="stdin_stdout", stdin="0\n", expected_stdout="0"),
+            ChallengeTest(name="negative", kind="stdin_stdout", stdin="-5\n", expected_stdout="-10"),
+        ],
+        tags=["input"]
+    ),
+    Challenge(
+        id="ch_greet_12",
+        title="Greet by Name",
+        description=(
+            "Read a name with input() and print: Hello, <name>!\n\n"
+            "Call input() with no prompt text: everything your program prints is checked."
+        ),
+        starter_code="name = input()\nprint('Hello')\n",
+        tests=[
+            ChallengeTest(name="one word", kind="stdin_stdout", stdin="Ada\n", expected_stdout="Hello, Ada!"),
+            ChallengeTest(name="two words", kind="stdin_stdout", stdin="Grace Hopper\n", expected_stdout="Hello, Grace Hopper!"),
+        ],
+        tags=["input", "strings"]
     ),
 ]

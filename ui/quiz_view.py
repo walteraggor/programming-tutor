@@ -1,5 +1,5 @@
 import tkinter as tk
-from tkinter import ttk, messagebox
+from tkinter import messagebox
 from typing import Dict
 from backend.services import CatalogService, ProgressService, QuizService
 from backend.models import Quiz
@@ -22,7 +22,7 @@ class QuizView(tk.Frame):
         left.grid(row=0, column=0, sticky="ns")
         left.config(width=320)
         tk.Label(left, text="Quizzes", font=("Segoe UI", 14, "bold"), bg=self.theme["bg"], fg=self.theme["text"]).pack(anchor="w", padx=10, pady=10)
-        self.listbox = tk.Listbox(left, font=("Segoe UI", 11))
+        self.listbox = tk.Listbox(left, font=("Segoe UI", 11), width=34, exportselection=False, bg=self.theme["card"], fg=self.theme["text"], selectbackground=self.theme["accent"], selectforeground="white")
         self.listbox.pack(fill="both", expand=True, padx=10, pady=10)
         self.listbox.bind("<<ListboxSelect>>", self._on_select)
 
@@ -45,10 +45,15 @@ class QuizView(tk.Frame):
         # load
         self.quizzes = self.catalog.get_quizzes()
         for q in self.quizzes:
-            self.listbox.insert("end", f"{q.title}  ({q.id})")
+            self.listbox.insert("end", q.title)
 
         self.current_quiz: Quiz = None
         self.answer_vars: Dict[str, tk.IntVar] = {}
+
+        # Open on the first quiz rather than an empty page.
+        if self.quizzes:
+            self.listbox.selection_set(0)
+            self._on_select()
 
     def _on_select(self, _event=None):
         idx = self.listbox.curselection()
@@ -60,12 +65,15 @@ class QuizView(tk.Frame):
         self.answer_vars.clear()
 
         for i, q in enumerate(self.current_quiz.questions):
-            frame = tk.LabelFrame(self.container, text=f"Q{i+1}. {q.prompt}", bg=self.theme["card"], fg=self.theme["text"])
+            prompt = q.prompt.replace("`", "")  # the code marks are not needed in a plain title
+            frame = tk.LabelFrame(self.container, text=f"Q{i+1}. {prompt}", bg=self.theme["card"], fg=self.theme["text"])
             frame.grid(row=i, column=0, sticky="ew", padx=5, pady=5)
             var = tk.IntVar(value=-1)
             self.answer_vars[q.id] = var
             for j, opt in enumerate(q.options):
-                rb = tk.Radiobutton(frame, text=opt, variable=var, value=j, bg=self.theme["card"], fg=self.theme["text"], anchor="w", justify="left")
+                rb = tk.Radiobutton(frame, text=opt, variable=var, value=j, bg=self.theme["card"], fg=self.theme["text"], selectcolor=self.theme["card"],
+                                    activebackground=self.theme["card"], activeforeground=self.theme["text"],
+                                    anchor="w", justify="left")
                 rb.pack(fill="x", padx=10, pady=2)
 
     def _submit(self):
@@ -77,7 +85,7 @@ class QuizView(tk.Frame):
         self.progress.record_quiz(self.current_quiz.id, result.correct, result.total)
         # Show summary
         msg_lines = [f"Score: {result.correct}/{result.total}", ""]
-        for d in result.details:
+        for number, d in enumerate(result.details, start=1):
             status = "✅ Correct" if d["correct"] else "❌ Incorrect"
-            msg_lines.append(f"{d['question_id']}: {status}\n→ {d['explanation']}")
+            msg_lines.append(f"Q{number}: {status}\n→ {d['explanation']}")
         messagebox.showinfo("Quiz Results", "\n\n".join(msg_lines))

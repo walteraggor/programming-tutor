@@ -1,0 +1,26 @@
+name: Tests
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+        python-version: ["3.11", "3.13"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      # The window tests need a display. Windows has one, so there they must run;
+      # on Linux they are skipped.
+      - name: Run the tests
+        run: python -m unittest -v
+        env:
+          TUTOR_REQUIRE_DISPLAY: ${{ runner.os == 'Windows' && '1' || '' }}

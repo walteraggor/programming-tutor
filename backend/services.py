@@ -1,9 +1,11 @@
 import ast
 from typing import List, Dict, Any, Optional
-from .models import Lesson, Quiz, QuizQuestion, Challenge, ChallengeTest, GradeResult, RunResult
+from .models import Lesson, Quiz, Challenge, ChallengeTest, GradeResult, RunResult
 from .repository import LESSONS, QUIZZES, CHALLENGES
 from .storage import Storage
-from .code_runner import run_code_isolated, build_function_test_harness, build_stdin_stdout_harness, static_safety_check, SafetyViolation
+from .code_runner import run_code_isolated, build_function_test_harness, SafetyViolation, InterpreterNotFound
+
+RESULTS_MARKER = "__TEST_RESULTS__:"
 
 class CatalogService:
     def get_lessons(self) -> List[Lesson]:
@@ -52,10 +54,10 @@ class ProgressService:
         # achievements
         self.storage.ensure_achievement("first_challenge", "Code Sprout: First challenge attempt")
         self.storage.grant_achievement("first_challenge")
-        # If passed many, grant others
+        # If passed many, grant others. Passing the same challenge twice counts once.
         hist = self.storage.list_progress()
-        total_passed = sum(1 for t, _, s, sc, mx, _ in hist if t == "challenge" and s == "passed")
-        if total_passed >= 5:
+        passed_ids = {item_id for t, item_id, s, _sc, _mx, _when in hist if t == "challenge" and s == "passed"}
+        if len(passed_ids) >= 5:
             self.storage.ensure_achievement("five_challs", "Rising Coder: 5 challenges passed")
             self.storage.grant_achievement("five_challs")
 
@@ -90,35 +92,93 @@ class RunService:
             stdout, stderr, rc, to = run_code_isolated(code, stdin=stdin, timeout=timeout)
             ok = (rc == 0) and not to
             return RunResult(ok=ok, stdout=stdout, stderr=stderr, timed_out=to)
-        except SafetyViolation as e:
+        except (SafetyViolation, InterpreterNotFound) as e:
             return RunResult(ok=False, stdout="", stderr=str(e), timed_out=False)
 
     def run_challenge_tests(self, challenge: Challenge, student_code: str, timeout: int = 3) -> RunResult:
+        """Run every test of a challenge and report each one's result.
+
+        A challenge can mix two kinds of test: "function" tests call a function
+        the student wrote, and "stdin_stdout" tests run the whole program with
+        some input and compare what it prints.
+        """
+        function_tests = [t for t in challenge.tests if t.kind == "function"]
+        program_tests = [t for t in challenge.tests if t.kind == "stdin_stdout"]
+        try:
+            parts = []
+            if function_tests:
+                parts.append(self._run_function_tests(challenge, student_code, function_tests, timeout))
+            if program_tests:
+                parts.append(self._run_program_tests(student_code, program_tests, timeout))
+        except (SafetyViolation, InterpreterNotFound) as e:
+            # Same as run_arbitrary: report it instead of letting the worker thread die.
+            return RunResult(ok=False, stdout="", stderr=str(e), timed_out=False, tests_summary=[])
+
+        tests_summary = [t for part in parts for t in part.tests_summary]
+        passed = sum(1 for t in tests_summary if t.get("ok"))
+        total = len(function_tests) + len(program_tests)
+        timed_out = any(part.timed_out for part in parts)
+        ok = total > 0 and passed == total and all(part.ok for part in parts)
+        return RunResult(
+            ok=ok,
+            stdout="".join(part.stdout for part in parts),
+            stderr="\n".join(part.stderr.strip() for part in parts if part.stderr.strip()),
+            timed_out=timed_out,
+            tests_summary=tests_summary,
+        )
+
+    def _run_function_tests(self, challenge: Challenge, student_code: str,
+                            tests: List[ChallengeTest], timeout: int) -> RunResult:
         func_tests = [{
             "name": t.name,
             "input_args": t.input_args,
             "expected_return": t.expected_return
-        } for t in challenge.tests if t.kind == "function"]
+        } for t in tests]
+        harness = build_function_test_harness(student_code, challenge.function_name, func_tests)
+        stdout, stderr, rc, to = run_code_isolated(harness, stdin="", timeout=timeout)
 
-        try:
-            harness = build_function_test_harness(student_code, challenge.function_name, func_tests)
-            stdout, stderr, rc, to = run_code_isolated(harness, stdin="", timeout=timeout)
-        except SafetyViolation as e:
-            # Same as run_arbitrary: report it instead of letting the worker thread die.
-            return RunResult(ok=False, stdout="", stderr=str(e), timed_out=False, tests_summary=[])
         tests_summary = []
-        if "__TEST_RESULTS__:" in stdout:
-            payload = stdout.split("__TEST_RESULTS__:", 1)[1].strip()
+        # The harness prints its results last, so read from the final marker.
+        if RESULTS_MARKER in stdout:
+            payload = stdout.rsplit(RESULTS_MARKER, 1)[1].strip()
             try:
                 parsed = ast.literal_eval(payload)
             except (ValueError, TypeError, SyntaxError, MemoryError, RecursionError):
                 parsed = []
             if isinstance(parsed, list):
                 tests_summary = [t for t in parsed if isinstance(t, dict)]
-        passed = sum(1 for t in tests_summary if t.get("ok"))
-        total = len(func_tests)
-        ok = (passed == total) and not to and rc == 0
-        return RunResult(ok=ok, stdout=stdout, stderr=stderr, timed_out=to, tests_summary=tests_summary)
+        return RunResult(ok=(rc == 0 and not to), stdout=stdout, stderr=stderr, timed_out=to,
+                         tests_summary=tests_summary)
+
+    def _run_program_tests(self, student_code: str, tests: List[ChallengeTest], timeout: int) -> RunResult:
+        tests_summary = []
+        errors = []
+        timed_out = False
+        for t in tests:
+            stdout, stderr, rc, to = run_code_isolated(student_code, stdin=t.stdin or "", timeout=timeout)
+            expected = _normalise_output(t.expected_stdout or "")
+            actual = _normalise_output(stdout)
+            if to:
+                timed_out = True
+                ok, message = False, "timed out"
+            elif rc != 0:
+                ok = False
+                message = "error: " + (stderr.strip().splitlines() or ["the program stopped with an error"])[-1]
+                if stderr.strip() and stderr.strip() not in errors:
+                    errors.append(stderr.strip())
+            else:
+                ok = (actual == expected)
+                message = "" if ok else f"expected output {expected!r}, got {actual!r}"
+            tests_summary.append({"name": t.name, "ok": ok, "message": message})
+        # Each program's own output is already compared above, so it is not repeated.
+        return RunResult(ok=not timed_out and not errors, stdout="", stderr="\n".join(errors),
+                         timed_out=timed_out, tests_summary=tests_summary)
+
+
+def _normalise_output(text: str) -> str:
+    """Ignore Windows line endings and blank space at the ends when comparing output."""
+    lines = text.replace("\r\n", "\n").strip().split("\n")
+    return "\n".join(line.rstrip() for line in lines)
 
 class NotesService:
     def __init__(self, storage: Storage):
@@ -175,12 +235,16 @@ class SettingsService:
 class AchievementsService:
     def __init__(self, storage: Storage):
         self.storage = storage
-        # Ensure catalog exists
+        self._ensure_catalog()
+
+    def _ensure_catalog(self):
         self.storage.ensure_achievement("first_quiz", "Quiz Novice: First quiz attempt")
         self.storage.ensure_achievement("first_challenge", "Code Sprout: First challenge attempt")
         self.storage.ensure_achievement("five_challs", "Rising Coder: 5 challenges passed")
 
     def list(self):
+        # Checked every time so the locked achievements are still listed after a reset.
+        self._ensure_catalog()
         return self.storage.list_achievements()
 
 class ResetService:

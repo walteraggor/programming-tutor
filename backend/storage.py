@@ -1,11 +1,10 @@
 import sqlite3
+from contextlib import contextmanager
 from pathlib import Path
 from typing import Optional, List, Tuple, Dict, Any
-import os
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 APP_DIR = Path.home() / ".programming_tutor"
-APP_DIR.mkdir(parents=True, exist_ok=True)
 DB_PATH = APP_DIR / "app.db"
 
 SCHEMA = """
@@ -57,10 +56,20 @@ CREATE TABLE IF NOT EXISTS achievements (
 );
 """
 
+def _utc_now() -> datetime:
+    """The current UTC time without timezone info, the form the database stores."""
+    return datetime.now(timezone.utc).replace(tzinfo=None)
+
+@contextmanager
 def _connect(db_path: Optional[str] = None):
+    """Open the database, save the changes on success, and always close it again."""
     conn = sqlite3.connect(db_path or str(DB_PATH))
     conn.row_factory = sqlite3.Row
-    return conn
+    try:
+        with conn:
+            yield conn
+    finally:
+        conn.close()
 
 class Storage:
     def __init__(self, db_path: Optional[str] = None):
@@ -68,6 +77,8 @@ class Storage:
         self._ensure_db()
 
     def _ensure_db(self):
+        # The folder is only created when the database is really about to be used.
+        Path(self.db_path).parent.mkdir(parents=True, exist_ok=True)
         with _connect(self.db_path) as conn:
             conn.executescript(SCHEMA)
 
@@ -89,7 +100,7 @@ class Storage:
     def list_progress(self) -> List[Tuple[Any, ...]]:
         with _connect(self.db_path) as conn:
             cur = conn.execute(
-                "SELECT item_type, item_id, status, score, max_score, created_at FROM progress ORDER BY created_at DESC;"
+                "SELECT item_type, item_id, status, score, max_score, created_at FROM progress ORDER BY created_at DESC, id DESC;"
             )
             return [tuple(r) for r in cur.fetchall()]
 
@@ -110,11 +121,11 @@ class Storage:
         with _connect(self.db_path) as conn:
             if query:
                 cur = conn.execute(
-                    "SELECT * FROM notes WHERE title LIKE ? OR content LIKE ? ORDER BY created_at DESC",
+                    "SELECT * FROM notes WHERE title LIKE ? OR content LIKE ? ORDER BY created_at DESC, id DESC",
                     (f"%{query}%", f"%{query}%")
                 )
             else:
-                cur = conn.execute("SELECT * FROM notes ORDER BY created_at DESC")
+                cur = conn.execute("SELECT * FROM notes ORDER BY created_at DESC, id DESC")
             return [dict(r) for r in cur.fetchall()]
 
     def delete_note(self, note_id: int):
@@ -132,7 +143,7 @@ class Storage:
     def latest_draft(self, challenge_id: str) -> Optional[str]:
         with _connect(self.db_path) as conn:
             cur = conn.execute(
-                "SELECT code FROM drafts WHERE challenge_id=? ORDER BY created_at DESC LIMIT 1",
+                "SELECT code FROM drafts WHERE challenge_id=? ORDER BY created_at DESC, id DESC LIMIT 1",
                 (challenge_id,)
             )
             row = cur.fetchone()
@@ -140,7 +151,7 @@ class Storage:
 
     # Flashcards (SRS)
     def add_flashcard(self, front: str, back: str):
-        now = datetime.utcnow()
+        now = _utc_now()
         with _connect(self.db_path) as conn:
             conn.execute(
                 "INSERT INTO flashcards(front, back, box, next_review) VALUES(?,?,1,?)",
@@ -148,10 +159,10 @@ class Storage:
             )
 
     def list_due_flashcards(self) -> List[Dict[str, Any]]:
-        now = datetime.utcnow().isoformat()
+        now = _utc_now().isoformat()
         with _connect(self.db_path) as conn:
             cur = conn.execute(
-                "SELECT * FROM flashcards WHERE next_review <= ? ORDER BY next_review ASC LIMIT 50", (now,)
+                "SELECT * FROM flashcards WHERE next_review <= ? ORDER BY next_review ASC, id ASC LIMIT 50", (now,)
             )
             return [dict(r) for r in cur.fetchall()]
 
@@ -164,18 +175,18 @@ class Storage:
             box = row["box"]
             box = min(5, box + 1) if correct else 1
             days = {1: 1, 2: 2, 3: 4, 4: 7, 5: 14}.get(box, 1)
-            next_review = (datetime.utcnow() + timedelta(days=days)).isoformat()
+            next_review = (_utc_now() + timedelta(days=days)).isoformat()
             conn.execute("UPDATE flashcards SET box=?, next_review=? WHERE id=?", (box, next_review, card_id))
 
     def list_all_flashcards(self, query: Optional[str] = None) -> List[Dict[str, Any]]:
         with _connect(self.db_path) as conn:
             if query:
                 cur = conn.execute(
-                    "SELECT * FROM flashcards WHERE front LIKE ? OR back LIKE ? ORDER BY created_at DESC",
+                    "SELECT * FROM flashcards WHERE front LIKE ? OR back LIKE ? ORDER BY created_at DESC, id DESC",
                     (f"%{query}%", f"%{query}%")
                 )
             else:
-                cur = conn.execute("SELECT * FROM flashcards ORDER BY created_at DESC")
+                cur = conn.execute("SELECT * FROM flashcards ORDER BY created_at DESC, id DESC")
             return [dict(r) for r in cur.fetchall()]
 
     def delete_flashcard(self, card_id: int):
