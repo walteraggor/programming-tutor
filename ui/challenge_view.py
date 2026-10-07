@@ -111,6 +111,18 @@ class ChallengeView(tk.Frame):
             # Something unexpected went wrong in the runner itself; say so rather than hang.
             res = RunResult(ok=False, stdout="", stderr=f"Could not run the tests: {res}",
                             timed_out=False, tests_summary=[])
+
+        # Save progress
+        passed = sum(1 for t in (res.tests_summary or []) if t.get("ok"))
+        total = len(res.tests_summary or [])
+        if total:
+            self.progress.record_challenge(challenge.id, passed, total)
+
+        if challenge is not self.current:
+            # Another challenge was opened while this one ran, so its results do not belong here.
+            self.status_var.set("")
+            return
+
         if res.timed_out:
             self.status_var.set("Timed out.")
         elif res.ok:
@@ -136,9 +148,3 @@ class ChallengeView(tk.Frame):
 
         self.output.delete("1.0", "end")
         self.output.insert("end", "\n".join(lines) if lines else "(no output)")
-
-        # Save progress
-        passed = sum(1 for t in (res.tests_summary or []) if t.get("ok"))
-        total = len(res.tests_summary or [])
-        if total:
-            self.progress.record_challenge(challenge.id, passed, total)

@@ -115,6 +115,22 @@ class WindowTests(unittest.TestCase):
         self.assertEqual(str(view.run_btn["state"]), "normal")
         self.assertIn("Imports are not allowed.", view.output.get("1.0", "end"))
 
+    def test_results_are_not_shown_under_a_different_challenge(self):
+        view = self.open("challenges")
+        view.editor.delete("1.0", "end")
+        view.editor.insert("end", "def add(a, b):\n    return a + b\n")
+        view.run_btn.invoke()
+        # Pick the next challenge before the run has finished.
+        view.listbox.selection_clear(0, "end")
+        view.listbox.selection_set(1)
+        view._on_select()
+        self.assertTrue(self.wait_until(lambda: str(view.run_btn["state"]) == "normal"))
+        self.assertEqual(view.output.get("1.0", "end").strip(), "")
+        self.assertEqual(view.status_var.get(), "")
+        # The run still counts for the challenge it belonged to.
+        history = self.app.progress.list_progress()
+        self.assertEqual([(row[1], row[2]) for row in history], [("ch_add_01", "passed")])
+
     def test_leaving_a_screen_while_code_runs_is_harmless(self):
         view = self.open("challenges")
         view.run_btn.invoke()
