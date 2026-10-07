@@ -26,7 +26,7 @@ class SettingsView(tk.Frame):
         # Danger Zone
         box = tk.LabelFrame(self, text="Danger Zone", bg=self.theme["bg"], fg=self.theme["text"])
         box.pack(fill="x", padx=10, pady=10)
-        tk.Label(box, text="Reset ALL data (lessons, quizzes, challenges, notes, cards, settings, achievements).", bg=self.theme["bg"], fg=self.theme["text"]).pack(anchor="w", padx=10, pady=5)
+        tk.Label(box, text="Reset ALL data (progress, notes, drafts, flashcards, settings, achievements).", bg=self.theme["bg"], fg=self.theme["text"]).pack(anchor="w", padx=10, pady=5)
         tk.Button(box, text="Reset EVERYTHING", bg="#e63946", fg="white", command=self._reset_all).pack(anchor="w", padx=10, pady=5)
 
     def _save_theme(self):
@@ -38,3 +38,5 @@ class SettingsView(tk.Frame):
         if messagebox.askyesno("Confirm", "Are you sure you want to reset ALL data?"):
             self.reset_service.reset_all()
             messagebox.showinfo("Done", "All data reset.")
+            # The theme setting was reset too, so redraw the window to match.
+            self.apply_theme_callback()

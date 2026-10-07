@@ -1,5 +1,4 @@
 import tkinter as tk
-from tkinter import ttk
 from backend.services import CatalogService, NotesService, FlashcardsService
 
 class SearchView(tk.Frame):

@@ -1,8 +1,9 @@
 import tkinter as tk
-from tkinter import ttk, messagebox
+from tkinter import messagebox
 from typing import Optional
 from backend.services import CatalogService, ProgressService, NotesService
 from backend.models import Lesson
+from utils import markdown_lite
 
 class LessonsView(tk.Frame):
     def __init__(self, parent, catalog: CatalogService, progress: ProgressService, notes: NotesService, theme):
@@ -26,7 +27,7 @@ class LessonsView(tk.Frame):
         tk.Label(left, text="Lessons", font=("Segoe UI", 14, "bold"),
                  bg=self.theme["bg"], fg=self.theme["text"]).pack(anchor="w", padx=10, pady=10)
 
-        self.listbox = tk.Listbox(left, font=("Segoe UI", 11))
+        self.listbox = tk.Listbox(left, font=("Segoe UI", 11), width=34, exportselection=False, bg=self.theme["card"], fg=self.theme["text"], selectbackground=self.theme["accent"], selectforeground="white")
         self.listbox.pack(fill="both", expand=True, padx=10, pady=10)
         self.listbox.bind("<<ListboxSelect>>", self._on_select)
 
@@ -40,8 +41,15 @@ class LessonsView(tk.Frame):
         tk.Label(right, textvariable=self.title_var, font=("Segoe UI", 16, "bold"),
                  bg=self.theme["card"], fg=self.theme["text"]).grid(row=0, column=0, sticky="w", padx=10, pady=10)
 
-        self.text = tk.Text(right, wrap="word", bg=self.theme["card"], fg=self.theme["text"], font=("Consolas", 11))
+        self.text = tk.Text(right, wrap="word", bg=self.theme["card"], fg=self.theme["text"], font=("Segoe UI", 11),
+                            padx=6, pady=6, spacing1=2, spacing3=2)
         self.text.grid(row=2, column=0, sticky="nsew", padx=10, pady=(0,10))
+        # One tag for each style the lesson text can contain (see utils/markdown_lite.py).
+        self.text.tag_configure(markdown_lite.TEXT, font=("Segoe UI", 11))
+        self.text.tag_configure(markdown_lite.HEADING, font=("Segoe UI", 14, "bold"), spacing1=10, spacing3=6)
+        self.text.tag_configure(markdown_lite.INLINE, font=("Consolas", 11), background=self.theme["panel"])
+        self.text.tag_configure(markdown_lite.CODE, font=("Consolas", 11), background=self.theme["panel"],
+                                lmargin1=16, lmargin2=16, spacing1=0, spacing3=0)
 
         self.sample_label = tk.Label(right, text="Sample Code:", bg=self.theme["card"], fg=self.theme["text"], font=("Segoe UI", 12, "bold"))
         self.sample_label.grid(row=3, column=0, sticky="w", padx=10, pady=(5,0))
@@ -56,8 +64,13 @@ class LessonsView(tk.Frame):
         # load data
         self.lessons = self.catalog.get_lessons()
         for l in self.lessons:
-            self.listbox.insert("end", f"{l.title}  ({l.id})")
+            self.listbox.insert("end", l.title)
         self.current: Optional[Lesson] = None
+
+        # Open on the first lesson rather than an empty page.
+        if self.lessons:
+            self.listbox.selection_set(0)
+            self._on_select()
 
     def _on_select(self, _event=None):
         idx = self.listbox.curselection()
@@ -66,8 +79,7 @@ class LessonsView(tk.Frame):
         lesson = self.lessons[idx[0]]
         self.current = lesson
         self.title_var.set(lesson.title)
-        self.text.delete("1.0", "end")
-        self.text.insert("end", lesson.body_markdown)
+        markdown_lite.show(self.text, lesson.body_markdown)
         self.sample_text.delete("1.0", "end")
         if lesson.sample_code:
             self.sample_text.insert("end", lesson.sample_code)

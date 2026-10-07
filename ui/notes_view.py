@@ -1,6 +1,7 @@
 import tkinter as tk
 from tkinter import ttk, messagebox
 from backend.services import NotesService, CatalogService
+from utils.timefmt import to_local
 
 class NotesView(tk.Frame):
     def __init__(self, parent, notes: NotesService, catalog: CatalogService, theme):
@@ -28,7 +29,7 @@ class NotesView(tk.Frame):
         tk.Button(qf, text="Search", bg=self.theme["accent"], fg="white", command=self._refresh).pack(side="left", padx=5)
         tk.Button(qf, text="New", bg=self.theme["accent"], fg="white", command=self._new).pack(side="left", padx=5)
 
-        self.listbox = tk.Listbox(left, font=("Segoe UI", 11))
+        self.listbox = tk.Listbox(left, font=("Segoe UI", 11), width=34, exportselection=False, bg=self.theme["card"], fg=self.theme["text"], selectbackground=self.theme["accent"], selectforeground="white")
         self.listbox.pack(fill="both", expand=True, padx=10, pady=10)
         self.listbox.bind("<<ListboxSelect>>", self._show_selected)
 
@@ -55,10 +56,9 @@ class NotesView(tk.Frame):
         self._rows = self.notes.list(q if q else None)
         self.listbox.delete(0,"end")
         for r in self._rows:
-            rid = r["id"]
             ttl = r["title"]
             when = r["created_at"]
-            self.listbox.insert("end", f"{ttl} (#{rid}) — {when}")
+            self.listbox.insert("end", f"{ttl} — {to_local(when)}")
 
     def _show_selected(self, _evt=None):
         idx = self.listbox.curselection()
