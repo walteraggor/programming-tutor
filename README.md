@@ -8,11 +8,11 @@ Built with Tkinter and SQLite using only the Python standard library, so there i
 
 | Screen | What it does |
 |---|---|
-| **Lessons** | Seven short lessons with sample code: variables and types, control flow, collections, functions, files, exceptions and classes. Mark a lesson as viewed or attach a note to it. |
+| **Lessons** | Seven lessons with explanations and sample code: variables and types, control flow, collections, functions, files, exceptions and classes. Mark a lesson as viewed or attach a note to it. |
 | **Quizzes** | Three multiple-choice quizzes. Every answer comes with an explanation. |
-| **Challenges** | Ten coding problems, from `add(a, b)` to balanced parentheses. Write a function in the editor, press **Run Tests** and see which test cases pass. Drafts can be saved and are restored when you come back. |
-| **Playground** | Run any snippet and see its output and errors. |
-| **Flashcards** | Spaced repetition using the Leitner system: five boxes reviewed after 1, 2, 4, 7 and 14 days. |
+| **Challenges** | Twelve coding problems, from `add(a, b)` to balanced parentheses. Write your code in the editor, press **Run Tests** and see which test cases pass. Drafts can be saved and are restored when you come back. |
+| **Playground** | Run any snippet and see its output and errors. A box underneath supplies the text that `input()` reads. |
+| **Flashcards** | Spaced repetition using the Leitner system: five boxes reviewed after 1, 2, 4, 7 and 14 days. The answer stays hidden until you ask for it. |
 | **Notes** | Searchable notes, optionally linked to a lesson. |
 | **Progress** | A history of everything you have completed, your total score and three achievements to unlock. |
 | **Search** | Searches lessons, quizzes, challenges, notes and flashcards at once. |
@@ -34,9 +34,14 @@ On Windows, use `py app.py` if `python` is not on your PATH.
 
 Code from the Playground and the Challenges screen runs in a separate Python process with a 3-second timeout, so an infinite loop cannot freeze the app.
 
-Before anything runs, a static check rejects `import` statements and calls to `open`, `input`, `eval`, `exec` and a few similar built-ins. This keeps beginner experiments from touching the file system by accident. It is a guard rail for a learning tool, not a security sandbox.
+Before anything runs, a static check rejects `import` statements and calls to `open`, `eval`, `exec` and a few similar built-ins. This keeps beginner experiments from touching the file system by accident. It is a guard rail for a learning tool, not a security sandbox.
 
-A challenge is graded by calling your function with each test's arguments and comparing the return value with the expected one. Failed tests show what was expected and what your function returned.
+There are two kinds of challenge:
+
+- **Function challenges** call your function with each test's arguments and compare what it returns with the expected value.
+- **Program challenges** run your whole program with some input and compare what it prints with the expected output.
+
+Either way, a failed test shows what was expected and what your code produced.
 
 ## Your data
 
@@ -47,6 +52,16 @@ Progress, notes, drafts, flashcards and settings are stored in a SQLite database
 
 To start over, use **Settings → Reset EVERYTHING** or delete that file.
 
+## Tests
+
+```bash
+python -m unittest
+```
+
+The tests cover the safety check, the code runner, storage, grading and the lesson text. One group checks that every challenge has a correct solution that passes and starter code that does not, which catches a challenge whose expected answers are wrong.
+
+Another group opens the real window and uses each screen. It needs a display, so it is skipped automatically where there is none. All tests use a temporary database and never touch your own data.
+
 ## Building a standalone app
 
 | Script | Result |
@@ -56,6 +71,8 @@ To start over, use **Settings → Reset EVERYTHING** or delete that file.
 | `build_pyz.bat` (Windows) | `build\ProgrammingTutor.pyz`, a single file that runs with `py build\ProgrammingTutor.pyz` on any machine that has Python |
 
 The PyInstaller scripts install PyInstaller for you. `programming_tutor.spec` does the same build from a spec file: `pyinstaller programming_tutor.spec`.
+
+The packaged app does not contain a Python of its own for running your code. It uses the Python installed on the computer, and says so in the output box if it cannot find one.
 
 ## Project structure
 
@@ -70,17 +87,21 @@ backend/
 ui/
     main_window.py        Window, sidebar and themes
     *_view.py             One file per screen
+    background.py         Runs code without freezing the window
 utils/
-    syntax_highlight.py   Syntax highlighting for the challenge editor
+    markdown_lite.py      Turns lesson text into headings, code blocks and bullet points
+    syntax_highlight.py   Colors the code in the editors
+    timefmt.py            Shows saved times in your own time zone
+tests/                    Unit tests and the window smoke test
 ```
 
 ## Adding your own content
 
-Lessons, quizzes and challenges are plain Python objects in `backend/repository.py`. To add a challenge, append a `Challenge` to the `CHALLENGES` list:
+Lessons, quizzes and challenges are plain Python objects in `backend/repository.py`. To add a function challenge, append a `Challenge` to the `CHALLENGES` list:
 
 ```python
 Challenge(
-    id="ch_square_11",
+    id="ch_square_13",
     title="Square a Number",
     description="square(n) returns n multiplied by itself.",
     starter_code="def square(n):\n    return 0\n",
@@ -93,4 +114,19 @@ Challenge(
 ),
 ```
 
-It appears in the Challenges list the next time the app starts.
+A program challenge has no `function_name`. Its tests give the input to type and the output to expect:
+
+```python
+Challenge(
+    id="ch_shout_14",
+    title="Shout",
+    description="Read a line with input() and print it in capital letters.",
+    starter_code="line = input()\nprint(line)\n",
+    tests=[
+        ChallengeTest(name="one word", kind="stdin_stdout", stdin="hello\n", expected_stdout="HELLO"),
+    ],
+    tags=["input"],
+),
+```
+
+A new challenge appears in the Challenges list the next time the app starts. Add a correct answer for it to `SOLUTIONS` in `tests/test_challenges.py`, and the tests will confirm it can be solved.
