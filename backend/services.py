@@ -1,4 +1,4 @@
-import json
+import ast
 from typing import List, Dict, Any, Optional
 from .models import Lesson, Quiz, QuizQuestion, Challenge, ChallengeTest, GradeResult, RunResult
 from .repository import LESSONS, QUIZZES, CHALLENGES
@@ -100,15 +100,21 @@ class RunService:
             "expected_return": t.expected_return
         } for t in challenge.tests if t.kind == "function"]
 
-        harness = build_function_test_harness(student_code, challenge.function_name, func_tests)
-        stdout, stderr, rc, to = run_code_isolated(harness, stdin="", timeout=timeout)
+        try:
+            harness = build_function_test_harness(student_code, challenge.function_name, func_tests)
+            stdout, stderr, rc, to = run_code_isolated(harness, stdin="", timeout=timeout)
+        except SafetyViolation as e:
+            # Same as run_arbitrary: report it instead of letting the worker thread die.
+            return RunResult(ok=False, stdout="", stderr=str(e), timed_out=False, tests_summary=[])
         tests_summary = []
         if "__TEST_RESULTS__:" in stdout:
             payload = stdout.split("__TEST_RESULTS__:", 1)[1].strip()
             try:
-                tests_summary = json.loads(payload)
-            except json.JSONDecodeError:
-                tests_summary = []
+                parsed = ast.literal_eval(payload)
+            except (ValueError, TypeError, SyntaxError, MemoryError, RecursionError):
+                parsed = []
+            if isinstance(parsed, list):
+                tests_summary = [t for t in parsed if isinstance(t, dict)]
         passed = sum(1 for t in tests_summary if t.get("ok"))
         total = len(func_tests)
         ok = (passed == total) and not to and rc == 0
