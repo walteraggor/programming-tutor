@@ -31,7 +31,3 @@ class ToLocalTests(unittest.TestCase):
 
         self.assertEqual(to_local("2026-01-15 20:30:00"), "2026-01-16 05:30")
         self.assertEqual(to_local("2026-01-15 20:30:00", "%H:%M:%S"), "05:30:00")
-
-
-if __name__ == "__main__":
-    unittest.main()

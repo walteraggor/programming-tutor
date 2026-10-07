@@ -267,7 +267,3 @@ class PlaygroundTests(unittest.TestCase):
         result = self.runner.run_arbitrary("while True:\n    pass", timeout=1)
         self.assertTrue(result.timed_out)
         self.assertFalse(result.ok)
-
-
-if __name__ == "__main__":
-    unittest.main()

@@ -42,7 +42,3 @@ class FindSpansTests(unittest.TestCase):
 
     def test_empty_code(self):
         self.assertEqual(find_spans(""), [])
-
-
-if __name__ == "__main__":
-    unittest.main()

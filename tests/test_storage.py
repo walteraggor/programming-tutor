@@ -185,7 +185,3 @@ class ResetTests(StorageTestCase):
         self.assertEqual(self.storage.list_all_flashcards(), [])
         self.assertEqual(self.storage.get_setting("theme", "light"), "light")
         self.assertEqual(self.storage.list_achievements(), [])
-
-
-if __name__ == "__main__":
-    unittest.main()
