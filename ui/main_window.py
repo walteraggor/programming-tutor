@@ -25,7 +25,7 @@ class MainWindow(tk.Tk):
     def __init__(self, db_path=None):
         """Build the window. db_path chooses a different database file, which the tests use."""
         super().__init__()
-        self.title("Programming Tutor v2")
+        self.title("Programming Tutor")
         self.geometry("1200x780")
         self.minsize(1000, 650)
 
@@ -70,7 +70,7 @@ class MainWindow(tk.Tk):
         sidebar.grid_propagate(False)
         sidebar.config(width=220)
 
-        title = tk.Label(sidebar, text="Programming Tutor v2",
+        title = tk.Label(sidebar, text="Programming Tutor",
                          fg=self.theme["sidebar_text"], bg=self.theme["sidebar"],
                          font=("Segoe UI", 14, "bold"), padx=10, pady=20, anchor="w", wraplength=200)
         title.pack(fill="x")
