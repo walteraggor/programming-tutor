@@ -14,6 +14,7 @@ xcopy /E /I ui build\ui > nul
 xcopy /E /I utils build\utils > nul
 copy app.py build\app.py > nul
 cd build
-py -m zipapp . -m "app:main" -o ProgrammingTutor.pyz
+REM No -m flag: zipapp refuses an entry point when __main__.py already exists
+py -m zipapp . -o ProgrammingTutor.pyz
 cd ..
 echo Done. Run: build\ProgrammingTutor.pyz

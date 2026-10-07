@@ -234,7 +234,7 @@ CHALLENGES: List[Challenge] = [
         starter_code="def char_freq(s: str):\n    return {}\n",
         function_name="char_freq",
         tests=[
-            ChallengeTest(name="small", kind="function", input_args=["abba"], expected_return={'a':1,'b':3}),
+            ChallengeTest(name="small", kind="function", input_args=["abba"], expected_return={'a':2,'b':2}),
         ],
         tags=["dicts","strings"]
     ),

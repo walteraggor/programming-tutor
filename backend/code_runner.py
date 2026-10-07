@@ -70,30 +70,33 @@ def run_code_isolated(code: str, stdin: str = "", timeout: int = 3) -> Tuple[str
 
 def build_function_test_harness(student_code: str, function_name: str, tests: List[Dict[str, Any]]) -> str:
     static_safety_check(student_code)
+    # The finished harness goes through static_safety_check again when it is
+    # run, so it may only use what student code may use: no imports. Results
+    # are printed with repr() and read back with ast.literal_eval().
     lines = [
         student_code,
         "",
         "def __run_tests__():",
-        "    import json",
         "    results = []",
     ]
     for idx, t in enumerate(tests):
+        # repr() gives a valid Python literal whatever quotes the value contains.
         args_repr = repr(t["input_args"])
         expected = repr(t["expected_return"])
-        name = t["name"].replace('\\','\\\\').replace('"','\\"')
+        name = repr(t["name"])
         lines += [
             f"    # Test {idx+1}: {name}",
             f"    try:",
             f"        _res = {function_name}(*{args_repr})",
             f"        _ok = (_res == {expected})",
-            f"        _msg = '' if _ok else f'expected {expected}, got {{_res!r}}'",
+            f"        _msg = '' if _ok else 'expected ' + repr({expected}) + ', got ' + repr(_res)",
             f"    except Exception as e:",
             f"        _ok = False",
             f"        _msg = 'exception: ' + repr(e)",
-            f"    results.append({{'name': '{name}', 'ok': _ok, 'message': _msg}})",
+            f"    results.append({{'name': {name}, 'ok': _ok, 'message': _msg}})",
         ]
     lines += [
-        "    print('__TEST_RESULTS__:' + json.dumps(results))",
+        "    print('__TEST_RESULTS__:' + repr(results))",
         "",
         "if __name__ == '__main__':",
         "    __run_tests__()",
