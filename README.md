@@ -1,6 +1,6 @@
-# Programming Tutor v2
+# Programming Tutor
 
-[![Tests](https://github.com/walteraggor/programming_tutor_v2/actions/workflows/tests.yml/badge.svg)](https://github.com/walteraggor/programming_tutor_v2/actions/workflows/tests.yml)
+[![Tests](https://github.com/walteraggor/programming-tutor/actions/workflows/tests.yml/badge.svg)](https://github.com/walteraggor/programming-tutor/actions/workflows/tests.yml)
 
 A desktop app for learning Python. It combines short lessons, multiple-choice quizzes, coding challenges that are graded automatically, a code playground, flashcards and notes in one window.
 
@@ -25,8 +25,8 @@ Built with Tkinter and SQLite using only the Python standard library, so there i
 You need Python 3.11 or newer with Tkinter. Tkinter is included in the standard Windows and macOS installers; on Debian or Ubuntu install it with `sudo apt install python3-tk`.
 
 ```bash
-git clone https://github.com/walteraggor/programming_tutor_v2.git
-cd programming_tutor_v2
+git clone https://github.com/walteraggor/programming-tutor.git
+cd programming-tutor
 python app.py
 ```
 

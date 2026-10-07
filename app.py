@@ -1,5 +1,5 @@
 """
-Entry point for the Programming Tutor v2 app.
+Entry point for the Programming Tutor app.
 """
 
 from ui.main_window import run_app

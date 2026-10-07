@@ -57,7 +57,7 @@ class RunResult:
     timed_out: bool
     tests_summary: Optional[List[Dict[str, Any]]] = None
 
-# Extras for v2
+# Extras
 @dataclass
 class Note:
     id: int
