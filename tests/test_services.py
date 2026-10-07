@@ -121,7 +121,3 @@ class ProgressAndAchievementTests(unittest.TestCase):
         ResetService(self.storage).reset_all()
         self.assertEqual(len(self.achievements.list()), 3)
         self.assertEqual(self.unlocked(), set())
-
-
-if __name__ == "__main__":
-    unittest.main()

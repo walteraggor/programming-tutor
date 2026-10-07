@@ -131,7 +131,3 @@ class HarnessTests(unittest.TestCase):
     def test_unsafe_student_code_is_refused_when_the_harness_is_built(self):
         with self.assertRaises(SafetyViolation):
             build_function_test_harness("import os\n", "f", [])
-
-
-if __name__ == "__main__":
-    unittest.main()

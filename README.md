@@ -57,7 +57,8 @@ To start over, use **Settings → Reset EVERYTHING** or delete that file.
 ## Tests
 
 ```bash
-python -m unittest
+python -m unittest                      # everything
+python -m unittest tests.test_storage   # one file
 ```
 
 The tests cover the safety check, the code runner, storage, grading and the lesson text. One group checks that every challenge has a correct solution that passes and starter code that does not, which catches a challenge whose expected answers are wrong.

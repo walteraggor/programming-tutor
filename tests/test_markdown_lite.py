@@ -60,7 +60,3 @@ class LessonTextTests(unittest.TestCase):
                 self.assertIn(HEADING, styles)
                 self.assertIn(CODE, styles)
                 self.assertTrue(lesson.sample_code.strip())
-
-
-if __name__ == "__main__":
-    unittest.main()

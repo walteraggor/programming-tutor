@@ -211,7 +211,3 @@ class WindowTests(unittest.TestCase):
         view._reset_all()
         self.app.update()
         self.assertEqual(self.app.theme_name, "light")
-
-
-if __name__ == "__main__":
-    unittest.main()
