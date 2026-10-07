@@ -18,6 +18,9 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
-      # The window tests run on Windows, which has a display, and are skipped on Linux.
+      # The window tests need a display. Windows has one, so there they must run;
+      # on Linux they are skipped.
       - name: Run the tests
         run: python -m unittest -v
+        env:
+          TUTOR_REQUIRE_DISPLAY: ${{ runner.os == 'Windows' && '1' || '' }}

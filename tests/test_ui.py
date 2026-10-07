@@ -2,6 +2,10 @@
 
 It needs a display, so it is skipped where there is none (for example on a
 server). It uses a temporary database, never your own data.
+
+Set the environment variable TUTOR_REQUIRE_DISPLAY=1 to make a missing display
+an error instead of a skip. The GitHub workflow does this on Windows, so these
+tests cannot quietly stop running there.
 """
 
 import gc
@@ -19,6 +23,9 @@ try:
     HAVE_DISPLAY = True
 except Exception:  # no Tkinter, or nowhere to draw a window
     HAVE_DISPLAY = False
+
+if not HAVE_DISPLAY and os.environ.get("TUTOR_REQUIRE_DISPLAY"):
+    raise RuntimeError("TUTOR_REQUIRE_DISPLAY is set, but a window could not be opened")
 
 
 @unittest.skipUnless(HAVE_DISPLAY, "needs Tkinter and a display")
