@@ -1,5 +1,7 @@
 # Programming Tutor v2
 
+[![Tests](https://github.com/walteraggor/programming_tutor_v2/actions/workflows/tests.yml/badge.svg)](https://github.com/walteraggor/programming_tutor_v2/actions/workflows/tests.yml)
+
 A desktop app for learning Python. It combines short lessons, multiple-choice quizzes, coding challenges that are graded automatically, a code playground, flashcards and notes in one window.
 
 Built with Tkinter and SQLite using only the Python standard library, so there is nothing to install besides Python.
@@ -61,6 +63,8 @@ python -m unittest
 The tests cover the safety check, the code runner, storage, grading and the lesson text. One group checks that every challenge has a correct solution that passes and starter code that does not, which catches a challenge whose expected answers are wrong.
 
 Another group opens the real window and uses each screen. It needs a display, so it is skipped automatically where there is none. All tests use a temporary database and never touch your own data.
+
+GitHub runs the tests on Linux and Windows for every push and pull request.
 
 ## Building a standalone app
 
